@@ -21,15 +21,15 @@ DIRECTON = {
 }
 
 TRIGGER = {
-    2: {(0, 0), (0, 4), (4, 0), (4, 4)},
-    3: {(0, 1), (0, 2), (0, 3),
+    2: [(0, 0), (0, 4), (4, 0), (4, 4)],
+    3: [(0, 1), (0, 2), (0, 3),
         (1, 0), (1, 4),
         (2, 0), (2, 4),
         (3, 0), (3, 4),
-        (4, 1), (4, 2), (4, 3)},
-    4: {(1, 1), (1, 2), (1, 3),
+        (4, 1), (4, 2), (4, 3)],
+    4: [(1, 1), (1, 2), (1, 3),
         (2, 1), (2, 2), (2, 3),
-        (3, 1), (3, 2), (3, 3)}
+        (3, 1), (3, 2), (3, 3)]
 }
 
 
@@ -45,11 +45,6 @@ def readBoard():
         "pieces": []
     }
 
-    zeroBoard = {
-        "location": [],
-        "pieces": []      
-    }
-
     for i in range(SIZE):
         row = input().split()
 
@@ -60,16 +55,11 @@ def readBoard():
             elif int(val[0]) == 2:
                 oppBoard["location"].append((i, j))
                 oppBoard["pieces"].append(int(val[1]))
-            else:
-                zeroBoard["location"].append((i, j))
-                zeroBoard["pieces"].append(0)
 
-    zBoard = dict(zip(zeroBoard["location"], zeroBoard["pieces"]))
     pBoard = dict(zip(playerBoard["location"], playerBoard["pieces"]))
     oBoard = dict(zip(oppBoard["location"], oppBoard["pieces"]))
 
     board = {
-        0: zBoard,
         1: pBoard,
         2: oBoard
     }
@@ -111,50 +101,27 @@ def checkAdjacent(move):
 
         if checkBound(temp):
             adjacentLocations.append(temp)
-            
+
     return adjacentLocations
 
 
-def addAdj(board, player, opponent, mainLocation, adjacentLocations):
-    primer = 0
-
-    # Loop to find the TRIGGER value 
-    for i in TRIGGER:
-        if mainLocation in TRIGGER[i]:
-            primer = i 
-            break
-
-    # Empties the main section or creates a new one and adds it to the board
-    if mainLocation in board[player]:
-        board[player][mainLocation] -= primer
-    else:
-        board[player][mainLocation] = 0
-    
-    # Changes the adjacent locations accordingly and stores them
-    for loc in adjacentLocations:
-        if loc in board[opponent]:
-            del board[opponent][loc]
-
-        if loc in board[player]:
-            board[player][loc] += 1
-        else:
-            board[player][loc] = 1
-
-    return board
-
-
-def getMoves(board, player):
+def getMoves(board, player, opponent):
     possibleMoves = []
-    possibleMoves.append(board[ZERO])
-    possibleMoves.append(board[player])
-    
+
+    for i in range(SIZE):
+        for j in range(SIZE):
+            if (i, j) not in board[opponent]:
+                possibleMoves.append((i, j))
+            elif (i, j) in board[player]:
+                possibleMoves.append((i, j))
+
     return possibleMoves
 
 
 def checkFinalMove(board, player, opponent):
     if not bool(board[player]) and not bool(board[opponent]):
         return 0
-        
+
     if not board[player]:
         return opponent
     if not board[opponent]:
@@ -165,46 +132,64 @@ def checkFinalMove(board, player, opponent):
 
 def scoreBoard(board, player, opponent):
     playerScore = 0
-    multiplier = 1
     oppScore = 0
 
     for move in board[player]:
-        playerScore += board[player][move] 
-        
+        playerScore += board[player][move]
+
         for i in TRIGGER:
-            if move in TRIGGER:
-                multiplier = abs(board[player][move] - i)
-    
-    playerScore += 10/multiplier
+            if move in TRIGGER[i]:
+                if i == 2:
+                    playerScore += 50
 
     for move in board[opponent]:
-        oppScore += board[opponent][move] 
+        oppScore += board[opponent][move]
 
-        for i in TRIGGER:
-            if move in TRIGGER:
-                multiplier = abs(board[player][move] - i) * -1
-
-    oppScore += 10/multiplier
-
-    finalScore = playerScore * len(board[player])  - oppScore * len(board[opponent])
+    finalScore = playerScore
 
     return finalScore
-                
+
 
 def simulateMove(board, player, opponent, move):
-    if checkFinalMove(board, player, opponent) != 0:
-        return 100000
+    newBoard = copy.deepcopy(board)
+
+    if move not in newBoard[player]:
+        newBoard[player][move] = 1
     else:
-        adj = checkAdjacent(move)
-        newBoard = addAdj(board, player, opponent, move, adj)
+        newBoard[player][move] += 1
 
-        tri = checkTrigger(move, newBoard[player][move])
-        while tri:
-            tri = checkTrigger(move, newBoard[player][move])
+    piecesToExplode = []
 
-        # simulateMove(newBoard, player, opponent, move)
+    if checkTrigger(move, newBoard[player][move]):
+        piecesToExplode.append(move)
 
-        return scoreBoard(newBoard, player, opponent)
+    while piecesToExplode != []:
+        currentMove = piecesToExplode.pop()
+        primer = 0
+
+        # Loop to find the TRIGGER value
+        for i in TRIGGER:
+            if currentMove in TRIGGER[i]:
+                primer = i
+                break
+
+        newBoard[player][currentMove] -= primer
+        adjacentLocations = checkAdjacent(currentMove)
+
+        for loc in adjacentLocations:
+            if loc not in newBoard[player]:
+                newBoard[player][loc] = 1
+            else:
+                newBoard[player][loc] += 1
+
+            if loc in newBoard[opponent]:
+                del newBoard[opponent][loc]
+
+            if checkTrigger(loc, newBoard[player][loc]):
+                if loc not in piecesToExplode:
+                    piecesToExplode.append(loc)
+
+    return newBoard
 
 
 def simulateAllMoves(board, player, opponent):
@@ -213,14 +198,13 @@ def simulateAllMoves(board, player, opponent):
         "score": []
     }
 
-    possibleMoves = getMoves(board, player)
+    possibleMoves = getMoves(board, player, opponent)
 
-    for i in range(2):
-        for move in possibleMoves[i]:
-            newBoard = copy.deepcopy(board)
-            results["initialMove"].append(move)
-            score = simulateMove(newBoard, player, opponent, move)
-            results["score"].append(score)
+    for move in possibleMoves:
+        results["initialMove"].append(move)
+        simulatedBoard = simulateMove(board, player, opponent, move)
+        score = scoreBoard(simulatedBoard, player, opponent)
+        results["score"].append(score)
 
     return dict(zip(results["initialMove"], results["score"]))
 
@@ -237,8 +221,14 @@ def displayMove(move):
 
 # This function prints the board in a readable manner
 def printBoard(board):
-    pprint.pprint(board[1])
-    pprint.pprint(board[2])
+    dis = [["00" for z in range(SIZE)] for y in range(SIZE)]
+    for player in board:
+        for position in board[player]:
+            dis[position[0]][position[1]] = str(player) + str(board[player][position])
+
+    board_str = "\n".join([" ".join(x) for x in dis])
+
+    print(board_str)
 
 
 # Main Function
