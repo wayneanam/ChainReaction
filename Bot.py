@@ -134,26 +134,16 @@ def scoreBoard(board, player, opponent):
     playerScore = 0
     oppScore = 0
 
-    for move in board[player]:
-        playerScore += board[player][move]
-
-        for i in TRIGGER:
-            if move in TRIGGER[i]:
-                if i == 2:
-                    playerScore += 50
-
-    for move in board[opponent]:
-        oppScore += board[opponent][move]
-
-    finalScore = playerScore
-
-    return finalScore
+    return playerScore   
 
 
 def simulateMove(board, player, opponent, move):
     newBoard = copy.deepcopy(board)
 
-    if move not in newBoard[player]:
+    if move in newBoard[opponent]:
+        newBoard[player][move] += newBoard[opponent][move] + 1
+        del newBoard[opponent][move]
+    elif move not in newBoard[player]:
         newBoard[player][move] = 1
     else:
         newBoard[player][move] += 1
@@ -174,16 +164,23 @@ def simulateMove(board, player, opponent, move):
                 break
 
         newBoard[player][currentMove] -= primer
+        if newBoard[player][currentMove] <= 0:
+            del newBoard[player][currentMove]
+
         adjacentLocations = checkAdjacent(currentMove)
 
         for loc in adjacentLocations:
-            if loc not in newBoard[player]:
+            if checkFinalMove(board, player, opponent) == 0:
+                return newBoard
+                
+            if loc in newBoard[opponent]:
+                newBoard[player][loc] = 0
+                newBoard[player][loc] += newBoard[opponent][loc] + 1
+                del newBoard[opponent][loc]
+            elif loc not in newBoard[player]:
                 newBoard[player][loc] = 1
             else:
                 newBoard[player][loc] += 1
-
-            if loc in newBoard[opponent]:
-                del newBoard[opponent][loc]
 
             if checkTrigger(loc, newBoard[player][loc]):
                 if loc not in piecesToExplode:
@@ -199,11 +196,12 @@ def simulateAllMoves(board, player, opponent):
     }
 
     possibleMoves = getMoves(board, player, opponent)
-
+    
     for move in possibleMoves:
         results["initialMove"].append(move)
         simulatedBoard = simulateMove(board, player, opponent, move)
         score = scoreBoard(simulatedBoard, player, opponent)
+        print(score)
         results["score"].append(score)
 
     return dict(zip(results["initialMove"], results["score"]))
@@ -235,5 +233,7 @@ def printBoard(board):
 if __name__ == "__main__":
     board, player, opponent = readBoard()
     results = simulateAllMoves(board, player, opponent)
+    pprint.pprint(results)
     move = bestMove(results)
     displayMove(move)
+    # printBoard(simulateMove(board, player, opponent, (4, 0)))
