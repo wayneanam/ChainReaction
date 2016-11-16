@@ -133,16 +133,18 @@ def scoreBoard(board, player, opponent):
         playerScore += board[player][move]
 
     playerScore *= len(board[player])
-
+	
+ 
     for i in TRIGGER:
         for move in board[opponent]:
             if move in TRIGGER[i]:
                 if board[opponent][move] <= (i - 2):
-                    playerScore += 60
+                    playerScore += 10
 
+                    
     if checkFinalMove(board, player, opponent) != 0:
-        playerScore += 9999999
-
+        playerScore += 9999999             
+        
     return playerScore
 
 
@@ -181,7 +183,7 @@ def simulateMove(board, player, opponent, move):
         for loc in adjacentLocations:
             if checkFinalMove(newBoard, player, opponent) != 0:
                 return newBoard
-
+                
             if loc in newBoard[opponent]:
                 newBoard[player][loc] = newBoard[opponent][loc] + 1
                 del newBoard[opponent][loc]
@@ -204,7 +206,7 @@ def simulateAllMoves(board, player, opponent):
     }
 
     possibleMoves = getMoves(board, player, opponent)
-
+    
     for move in possibleMoves:
         results["initialMove"].append(move)
         simulatedBoard = simulateMove(board, player, opponent, move)
@@ -215,9 +217,9 @@ def simulateAllMoves(board, player, opponent):
 
 
 def bestMove(possibleMoves):
-    for move in possibleMoves:
-        if possibleMoves[move] == max(list(possibleMoves.values())):
-            return move
+	for move in possibleMoves:
+	    if possibleMoves[move] == max(list(possibleMoves.values())):
+	        return move
 
 
 def displayMove(move):
