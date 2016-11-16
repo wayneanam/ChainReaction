@@ -119,11 +119,63 @@ def getMoves(board, player, opponent):
 
 
 def checkFinalMove(board, player, opponent):
+    sum = 0
+
+    for move in board[player]:
+        sum += board[player][move]
+
+    if sum <= 1:
+        return 0
+
     if len(board[player]) == 0 or len(board[opponent]) == 0:
         return 1
     else:
         return 0
 
+
+def scoreAllBoards(everything, player, opponent):
+    results = {
+        "initialMove":  [],
+        "simulatedMove": [],
+        "score": [],
+        "simulatedScore": []
+    }
+
+    for original in everything:
+        counter = 0
+        # Original move to a board A
+        for dict_moveA in original:
+            if counter == 0:
+                origKey = list(dict_moveA.keys())
+
+                origKey = (origKey[0])
+                board = dict_moveA[origKey]
+
+                results["initialMove"].append(origKey)
+                score = scoreBoard(board, player, opponent)
+                results["score"].append(score)
+
+            if counter == 1:
+                simKey = original[counter][origKey]
+                results["simulatedMove"].append(simKey)
+
+            if counter == 2:
+                oppScore = 0
+                secondCounter = 0
+
+                for singleBoard in original[counter][simKey]:
+                    print(oppScore)
+                    oppScore += scoreBoard(singleBoard, opponent, player)
+                    secondCounter += 1    
+
+                results["simulatedScore"].append(oppScore)
+
+            counter += 1
+    
+    return results
+
+
+    
 
 def scoreBoard(board, player, opponent):
     playerScore = 0
@@ -138,7 +190,7 @@ def scoreBoard(board, player, opponent):
         for move in board[opponent]:
             if move in TRIGGER[i]:
                 if board[opponent][move] <= (i - 2):
-                    playerScore += 60
+                    playerScore += 10
 
     if checkFinalMove(board, player, opponent) != 0:
         playerScore += 9999999
@@ -177,7 +229,7 @@ def simulateMove(board, player, opponent, move):
             del newBoard[player][currentMove]
 
         adjacentLocations = checkAdjacent(currentMove)
-
+        #Move checkFinal below the for statement
         for loc in adjacentLocations:
             if checkFinalMove(newBoard, player, opponent) != 0:
                 return newBoard
@@ -197,21 +249,59 @@ def simulateMove(board, player, opponent, move):
     return newBoard
 
 
-def simulateAllMoves(board, player, opponent):
+def getAllBoards(board, player, opponent, allMoves):
+    allBoards = []
+
+    for move in allMoves:
+        simulatedBoard = simulateMove(board, player, opponent, move)
+        allBoards.append(simulatedBoard)
+    
+    return allBoards
+
+
+def simulateAllMoves(board, player, opponent, allMoves):
     results = {
         "initialMove":  [],
         "score": []
     }
 
-    possibleMoves = getMoves(board, player, opponent)
-
-    for move in possibleMoves:
+    for move in allMoves:
         results["initialMove"].append(move)
         simulatedBoard = simulateMove(board, player, opponent, move)
         score = scoreBoard(simulatedBoard, player, opponent)
         results["score"].append(score)
-
+    
     return dict(zip(results["initialMove"], results["score"]))
+
+
+def searchNextMove(board, player, opponent):
+    playerMoves = getMoves(board, player, opponent)
+    playerBoards = getAllBoards(board, player, opponent, playerMoves)
+
+    everything = []
+    moveAToboardA = {}
+    moveAToMoveB = {}
+    moveBToBoardB = {}
+
+    for currMove in playerMoves:
+        for currBoard in playerBoards:
+            oppMoves = getMoves(currBoard, opponent, player)
+            oppBoard = getAllBoards(currBoard, opponent, player, oppMoves)
+
+            moveAToboardA[currMove] = currBoard
+
+            for singleMove in oppMoves:
+                for singleBoard in oppBoard:
+                    try:
+                        moveAToMoveB[currMove] = singleMove
+                    except:
+                        moveAToMoveB[currMove] = (5, 5)
+            
+                    moveBToBoardB[singleMove] = singleBoard      
+    
+        everything.append((moveAToboardA, moveAToMoveB, moveBToBoardB))
+    
+    return everything
 
 
 def bestMove(possibleMoves):
@@ -239,7 +329,9 @@ def printBoard(board):
 # Main Function
 if __name__ == "__main__":
     board, player, opponent = readBoard()
-    results = simulateAllMoves(board, player, opponent)
-    move = bestMove(results)
-    displayMove(move)
-    printBoard(simulateMove(board, player, opponent, move))
+    boardsAndMoves = searchNextMove(board, player, opponent)
+    scoreAllBoards(boardsAndMoves, player, opponent)
+
+    #move = bestMove(results)
+    #displayMove(move)
+    #printBoard(simulateMove(board, player, opponent, move))
