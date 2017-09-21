@@ -15,7 +15,7 @@ Note that the critical mass of the top-left most cell is 2 because there are onl
 
 **Running the Bot**
 
-To run the bot, run bot.py and input a 5*5 grid filled with 0's, 1's, and 2's. followed by a number either 1 or 2 to indicate which players turn it is. For examples on how a standard input looks like open files startingBoard.txt, earlyBoard.txt or finalBoard.txt. Input can be piped in or entered manually.
+To run the bot, run bot.py and input a 5*5 grid filled with 0's, 1's, and 2's. followed by a number either 1 or 2 to indicate which players turn it is. For examples on how a standard input looks like open files startingBoard.txt, earlyBoard.txt or finalBoard.txt. Input can be piped in or entered manually. Empty cells are denoted by 00. The cell marked 0 means it doesn't contain any orbs. The cell marked 1 means it contains first player's orbs which is Red in color. The cell marked 2 means it contains second player's orbs which is Blue in color.
 
 
 **Results**
